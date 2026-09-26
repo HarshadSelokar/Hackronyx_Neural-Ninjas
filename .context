@@ -1,0 +1,2071 @@
+# VCS R2 — Intelligent Expense Approval & Budget Monitoring System
+
+## 1. Problem Statement
+
+### VCS R2 Problem Statement
+
+Organizations often process employee expenses through spreadsheets, emails, and manual approvals. This makes it difficult to:
+
+* Monitor department budgets in real time
+* Identify high-value expenses
+* Track pending approvals
+* Detect policy violations
+* Detect unusual expenses
+* Understand the impact of approving an expense on a department's budget
+* Predict future budget overspending
+* Maintain a centralized audit trail
+
+### Required Solution
+
+Build an:
+
+**Intelligent Expense Approval and Budget Monitoring System**
+
+The platform should manage:
+
+* Employee expense submissions
+* Receipt/invoice processing
+* Expense categorization
+* Organization/departments
+* Department budgets
+* Expense policies
+* Approval workflows
+* Approval tracking
+* Budget monitoring
+* AI-assisted expense analysis
+* Basic predictive budget intelligence
+
+---
+
+# 2. Core Product Concept
+
+Do NOT build this as merely:
+
+> "An expense management CRUD application."
+
+The intended product positioning is:
+
+> **An AI-powered financial control platform that evaluates expenses against company policy, employee behavior, and department budget conditions, then assists authorized humans in making informed approval decisions.**
+
+Main concept:
+
+```text
+Employee submits expense
+        ↓
+AI analyzes expense
+        ↓
+Policy check
+        ↓
+Budget check
+        ↓
+Risk/anomaly analysis
+        ↓
+AI recommendation
+        ↓
+Authorized human approval
+        ↓
+Budget update / reporting
+        ↓
+Audit trail
+```
+
+---
+
+# 3. Extremely Important Approval Decision
+
+The LLM **does NOT have final approval authority**.
+
+The correct model is:
+
+```text
+AI analyzes
+    ↓
+AI recommends
+    ↓
+Authorized human decides
+    ↓
+System records decision
+```
+
+For example:
+
+```text
+Expense: ₹85,000
+
+AI Analysis:
+✓ Policy compliant
+✓ No duplicate detected
+⚠ Employee spending is unusually high
+⚠ Department budget utilization = 89%
+🔴 Forecasted utilization = 106%
+
+AI Recommendation:
+Finance Review
+
+Human approver:
+[Approve] [Reject] [Escalate]
+```
+
+The actual approval is performed by:
+
+* Manager
+* Finance
+* Admin/Department Head
+
+depending on configured approval rules.
+
+### Optional future capability
+
+Very low-value expenses could potentially be auto-processed if organizational rules allow it, but this should be represented as a **business rule**, not "the LLM approved it."
+
+---
+
+# 4. Admin Responsibilities
+
+The administrator should configure:
+
+### Departments
+
+Example:
+
+```text
+Engineering
+Marketing
+Sales
+HR
+Finance
+Operations
+```
+
+### Department Budgets
+
+Example:
+
+```text
+Engineering   ₹50,00,000
+Marketing     ₹30,00,000
+Sales         ₹60,00,000
+HR            ₹20,00,000
+Operations    ₹40,00,000
+```
+
+### Expense Policies
+
+Example:
+
+```text
+Hotel:
+₹8,000 maximum
+
+Food:
+₹1,500/day
+
+Taxi:
+₹2,000/trip
+
+Travel:
+₹50,000/transaction
+```
+
+### Approval Rules
+
+Example:
+
+```text
+₹0 – ₹5,000
+→ Manager
+
+₹5,000 – ₹25,000
+→ Manager → Finance
+
+₹25,000+
+→ Manager → Finance → Admin
+```
+
+Therefore:
+
+> **Admin defines budgets, policies, and approval rules. AI evaluates expenses against those definitions. Humans perform final approvals.**
+
+---
+
+# 5. Technology Stack
+
+The selected stack is intentionally simple.
+
+## Frontend
+
+**React + TSX**
+
+Responsibilities:
+
+* Authentication UI
+* Employee dashboard
+* Submit expense
+* Receipt upload
+* Expense history
+* Manager approval dashboard
+* Finance dashboard
+* Admin dashboard
+* Budget visualization
+* AI analysis display
+* Finance Copilot UI
+
+---
+
+## Backend
+
+**FastAPI + Python**
+
+Responsibilities:
+
+* REST API
+* Authentication/session validation
+* Expense creation
+* Receipt processing
+* Supabase interaction
+* LLM API calls
+* AI analysis orchestration
+* Policy checking
+* Budget calculations
+* Approval workflow
+* Audit logs
+* Forecasting
+* Finance Copilot tool/function calls
+
+---
+
+## Database
+
+**Supabase PostgreSQL**
+
+Responsibilities:
+
+* Users/profile information
+* Departments
+* Budgets
+* Policies
+* Approval rules
+* Expenses
+* Expense approvals
+* Audit logs
+
+Supabase Auth handles authentication.
+
+---
+
+## File Storage
+
+**Supabase Storage**
+
+Bucket:
+
+```text
+expense-receipts
+```
+
+The bucket should be private.
+
+The PostgreSQL database stores the file path in:
+
+```text
+expenses.receipt_path
+```
+
+---
+
+## AI
+
+**LLM APIs**
+
+LLM can be used for:
+
+* Receipt/invoice understanding
+* Expense data extraction
+* Expense categorization
+* Policy explanation
+* Expense analysis
+* Approval recommendation
+* Explanation generation
+* Natural-language finance queries
+* Executive summaries
+
+The LLM should not be responsible for authoritative calculations such as budget arithmetic or final authorization.
+
+---
+
+# 6. Core Feature Set
+
+The project was intentionally simplified. The most important features are below.
+
+---
+
+## Feature 1 — AI-Powered Expense Submission
+
+Employee can:
+
+### Option A — Manual entry
+
+```text
+Amount
+Category
+Merchant
+Date
+Description
+Receipt
+```
+
+### Option B — Receipt upload
+
+Employee uploads:
+
+* JPG
+* PNG
+* PDF
+* Invoice
+* Receipt
+* Bill
+
+The system extracts:
+
+```text
+Merchant
+Amount
+Date
+Invoice Number
+Tax/GST
+Category
+Description
+```
+
+Example:
+
+```text
+Receipt:
+Marriott Hotel
+₹12,390
+25 Sep 2026
+
+AI extraction:
+
+Merchant: Marriott Hotel
+Amount: ₹12,390
+Category: Accommodation
+Date: 25 Sep 2026
+Invoice: MAR-89231
+Tax: ₹1,890
+```
+
+The frontend displays extracted values and asks the employee to verify them before submission.
+
+---
+
+## Feature 2 — Smart Expense Categorization
+
+Automatically classify expenses.
+
+Examples:
+
+```text
+Uber
+→ Business Travel
+
+AWS
+→ Cloud Infrastructure
+
+Amazon Office Order
+→ Office Supplies
+
+Coursera
+→ Training
+
+Restaurant
+→ Client Entertainment
+```
+
+The employee should still be able to edit the AI-generated category.
+
+---
+
+## Feature 3 — AI Policy Guardian
+
+Admin defines policies.
+
+Example:
+
+```text
+Accommodation:
+Maximum = ₹8,000
+```
+
+Employee submits:
+
+```text
+₹12,390
+```
+
+System:
+
+```text
+Policy Violation
+
+Allowed: ₹8,000
+Submitted: ₹12,390
+Exceeded by: ₹4,390
+```
+
+The LLM can explain this in natural language.
+
+Important:
+
+* Backend performs authoritative numerical policy validation.
+* LLM generates understandable explanations.
+
+---
+
+## Feature 4 — Dynamic Approval Routing
+
+Approval workflow should depend on configured rules.
+
+Example:
+
+```text
+₹2,000
+→ Manager
+
+₹15,000
+→ Manager → Finance
+
+₹60,000
+→ Manager → Finance → Admin
+```
+
+Potential future enhancement:
+
+The system can also consider context such as:
+
+* Budget utilization
+* Risk level
+* Policy violation
+
+For example:
+
+```text
+₹7,000 expense
+Department budget utilization = 95%
+
+Normal:
+Manager only
+
+Intelligent workflow:
+Manager + Finance review
+```
+
+---
+
+## Feature 5 — Smart Approval Recommendation
+
+Every expense receives an AI analysis.
+
+Example:
+
+```text
+AI REVIEW
+
+Policy Compliance:
+✅
+
+Duplicate:
+✅ No duplicate
+
+Employee Pattern:
+⚠ Unusual
+
+Department Budget:
+⚠ 89% utilized
+
+Forecast:
+🔴 Potential overspending
+
+Recommendation:
+Finance Review
+```
+
+Possible recommendations:
+
+```text
+approve
+finance_review
+escalate
+reject
+```
+
+These are recommendations, not final approvals.
+
+---
+
+## Feature 6 — Explainable AI
+
+Do not simply show:
+
+```text
+Risk Score: 87
+```
+
+Instead show the reasons:
+
+```text
+Why was this expense flagged?
+
+✓ Policy compliant
+✓ No duplicate detected
+✓ Vendor appears normal
+
+⚠ Expense is 3.4× employee's historical average
+⚠ Department budget utilization is 87%
+⚠ Approval may increase projected utilization
+```
+
+This is an important differentiator.
+
+---
+
+## Feature 7 — Department Budget Monitoring
+
+Dashboard should show:
+
+```text
+Engineering
+
+Budget:       ₹50L
+Spent:        ₹39L
+Pending:      ₹3.4L
+Remaining:    ₹7.6L
+Utilization:  78%
+```
+
+Budget calculations should be derived from actual expense records.
+
+Do not maintain manually updated `spent_amount` and `remaining_amount` fields in the budget table.
+
+---
+
+## Feature 8 — Predictive Budget Monitoring
+
+Basic forecasting:
+
+```text
+Current utilization:
+78%
+
+Current monthly spending:
+₹4.1L
+
+Projected year-end spending:
+₹52L
+
+Budget:
+₹50L
+
+Potential overspend:
+₹2L
+```
+
+This can initially use a simple forecasting/statistical model rather than relying on the LLM for numerical predictions.
+
+The LLM can explain the prediction.
+
+---
+
+## Feature 9 — Budget Impact Simulator
+
+Before approving an expense:
+
+```text
+Current budget:
+₹50L
+
+Current spend:
+₹39L
+
+Current utilization:
+78%
+```
+
+User clicks:
+
+```text
+Simulate Approval
+```
+
+System shows:
+
+```text
+After approval:
+
+Utilization:
+78% → 84%
+
+Year-end forecast:
+104% → 108%
+
+Budget risk:
+Medium → High
+```
+
+This is one of the strongest "wow" features.
+
+---
+
+## Feature 10 — Duplicate Expense Detection
+
+Potential duplicate detection based on:
+
+* Invoice number
+* Merchant
+* Date
+* Amount
+* Receipt similarity
+
+Example:
+
+```text
+Possible Duplicate
+
+Current:
+₹8,450
+Amazon Business
+Invoice #AMZ9281
+
+Possible match:
+Expense #1742
+
+Similarity:
+96%
+```
+
+---
+
+## Feature 11 — Expense Anomaly Detection
+
+Identify unusual spending.
+
+Example:
+
+```text
+Employee historical average:
+₹4,200
+
+Current expense:
+₹41,500
+
+Deviation:
+9.8×
+
+Status:
+Unusual Expense
+```
+
+Potential anomaly signals:
+
+* High amount
+* Unusual category
+* Unusual merchant
+* Unusually frequent expenses
+* Significant deviation from employee history
+
+This can use Python/statistical logic or lightweight ML.
+
+---
+
+## Feature 12 — Intelligent Approval Queue
+
+Instead of listing every pending approval equally:
+
+```text
+HIGH IMPACT
+₹2,50,000
+
+POLICY REVIEW
+₹42,000
+
+ROUTINE
+₹3,200
+```
+
+Approvers can focus on expenses requiring attention.
+
+---
+
+## Feature 13 — Approval Bottleneck / Aging
+
+Track approval duration.
+
+Example:
+
+```text
+Manager:
+1.2 days average
+
+Finance:
+3.8 days average
+
+Admin:
+0.9 days average
+```
+
+Show overdue approvals:
+
+```text
+₹1.8L expense
+
+Waiting:
+4 days
+
+Expected SLA:
+3 days
+
+Status:
+Overdue
+```
+
+---
+
+## Feature 14 — Finance Copilot
+
+A natural-language interface for authorized users.
+
+Examples:
+
+```text
+"Which department is closest to exceeding its budget?"
+
+"Show pending expenses above ₹50,000."
+
+"Why is Sales spending more this month?"
+
+"How much is currently pending for reimbursement?"
+
+"What happens if we approve all pending expenses?"
+```
+
+Architecture:
+
+```text
+User Question
+      ↓
+LLM
+      ↓
+Tool / Function Call
+      ↓
+FastAPI
+      ↓
+Supabase
+      ↓
+Actual database results
+      ↓
+LLM
+      ↓
+Natural-language response
+```
+
+The LLM must answer based on actual database/tool results, not invent financial information.
+
+---
+
+## Feature 15 — AI Executive Summary
+
+Generate a summary such as:
+
+```text
+FINANCE WEEKLY BRIEF
+
+Total expenses:
+₹18.4L
+
+Pending approvals:
+37
+
+High-risk expenses:
+5
+
+Departments at risk:
+Sales
+Engineering
+
+Biggest increase:
+Travel +22%
+
+Budget concern:
+Engineering projected at 103%
+```
+
+---
+
+## Feature 16 — Pre-Submission Expense Advisor
+
+Before submitting:
+
+```text
+Hotel expense:
+₹14,000
+
+Company policy:
+₹10,000
+
+Potential excess:
+₹4,000
+```
+
+Show:
+
+```text
+⚠ This expense exceeds your company's
+reimbursement limit.
+
+[Edit] [Submit Anyway]
+```
+
+This prevents problems before they enter the approval workflow.
+
+---
+
+# 7. Most Important Innovation/USP Features
+
+The product should focus its presentation around five major ideas:
+
+## 1. AI Receipt Intelligence
+
+Messy receipts/invoices → structured expense data.
+
+## 2. Policy Guardian
+
+Automatically identify policy violations.
+
+## 3. Smart Approval Engine
+
+Combine:
+
+* Expense
+* Policy
+* Budget
+* Employee history
+* Risk
+
+to recommend the appropriate review level.
+
+## 4. Predictive Budget Guardian
+
+Don't just report current spending.
+
+Predict whether the department is heading toward budget overspending.
+
+## 5. Budget Impact Simulator + Finance Copilot
+
+Allow management to ask:
+
+> "What happens if I approve this?"
+
+and:
+
+> "What is happening with our budgets?"
+
+---
+
+# 8. Strong Product Positioning
+
+Preferred pitch:
+
+> **"An AI-powered financial control platform that evaluates every expense against company policy, employee behavior, and real-time budget conditions—then predicts the financial impact before approval."**
+
+Strong one-line USP:
+
+> **"We don't just track expenses—we understand their impact before organizations approve them."**
+
+Another strong statement:
+
+> **"AI analyzes. Humans decide."**
+
+---
+
+# 9. Recommended End-to-End Demo Flow
+
+A strong hackathon demo can follow this sequence:
+
+### Step 1
+
+Employee uploads a receipt.
+
+### Step 2
+
+AI extracts:
+
+```text
+Merchant
+Amount
+Date
+Category
+Invoice Number
+Tax
+```
+
+### Step 3
+
+AI categorizes the expense.
+
+### Step 4
+
+Policy engine checks it.
+
+Example:
+
+```text
+Hotel limit:
+₹8,000
+
+Actual:
+₹12,390
+
+Violation:
+₹4,390
+```
+
+### Step 5
+
+System checks:
+
+* Duplicate
+* Employee history
+* Department budget
+
+### Step 6
+
+Budget impact:
+
+```text
+Department utilization:
+84%
+
+After approval:
+87%
+```
+
+### Step 7
+
+Forecast:
+
+```text
+Projected year-end:
+103%
+```
+
+### Step 8
+
+AI recommendation:
+
+```text
+FINANCE REVIEW
+```
+
+### Step 9
+
+Manager sees the explanation and performs:
+
+```text
+Approve
+Reject
+Escalate
+```
+
+### Step 10
+
+System records approval and audit trail.
+
+---
+
+# 10. Simplified Architecture
+
+```text
+                 React + TSX
+                      │
+                      ▼
+                   FastAPI
+                      │
+          ┌───────────┼────────────┐
+          │           │            │
+          ▼           ▼            ▼
+      Supabase      LLM APIs    AI/ML Logic
+       Postgres                    │
+          │                        │
+          │                        │
+          └───────────┬────────────┘
+                      ▼
+               Decision Engine
+                      │
+                      ▼
+             Approval Workflow
+```
+
+Supabase Storage handles receipt files.
+
+---
+
+# 11. Database Schema
+
+The simplified MVP uses **8 PostgreSQL tables**.
+
+```text
+1. departments
+2. profiles
+3. budgets
+4. expense_policies
+5. approval_rules
+6. expenses
+7. expense_approvals
+8. audit_logs
+```
+
+Supabase Auth independently provides:
+
+```text
+auth.users
+```
+
+Do not create `auth.users` manually.
+
+---
+
+# 12. Database Relationships
+
+```text
+auth.users
+     │
+     ▼
+profiles
+     │
+     ├──────────────┐
+     ▼              ▼
+departments      expenses
+     │              │
+     ▼              ├───────────────┐
+budgets             ▼               ▼
+              expense_approvals   audit_logs
+
+
+expense_policies
+        │
+        ▼
+     expenses
+
+
+approval_rules
+        │
+        ▼
+     expenses
+```
+
+---
+
+# 13. Table 1 — departments
+
+Purpose:
+
+Stores organization departments.
+
+Columns:
+
+```text
+id              UUID PK
+name            TEXT
+description     TEXT
+created_at      TIMESTAMPTZ
+```
+
+SQL:
+
+```sql
+CREATE TABLE public.departments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+# 14. Table 2 — profiles
+
+Purpose:
+
+Application-specific user information.
+
+Supabase Auth handles authentication through `auth.users`.
+
+Columns:
+
+```text
+id              UUID PK / FK auth.users
+full_name       TEXT
+employee_code   TEXT
+role            TEXT
+department_id   UUID FK
+created_at      TIMESTAMPTZ
+updated_at      TIMESTAMPTZ
+```
+
+Allowed roles:
+
+```text
+employee
+manager
+finance
+admin
+```
+
+SQL:
+
+```sql
+CREATE TABLE public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT NOT NULL,
+    employee_code TEXT UNIQUE,
+    role TEXT NOT NULL DEFAULT 'employee'
+        CHECK (role IN ('employee', 'manager', 'finance', 'admin')),
+    department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+# 15. Table 3 — budgets
+
+Purpose:
+
+Stores department-level budgets defined by administrators.
+
+Columns:
+
+```text
+id              UUID PK
+department_id   UUID FK
+fiscal_year     INTEGER
+total_amount    NUMERIC
+created_by      UUID FK
+created_at      TIMESTAMPTZ
+updated_at      TIMESTAMPTZ
+```
+
+Important:
+
+Do NOT permanently store:
+
+```text
+spent_amount
+remaining_amount
+```
+
+Calculate those values from actual expenses.
+
+SQL:
+
+```sql
+CREATE TABLE public.budgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    department_id UUID NOT NULL
+        REFERENCES public.departments(id) ON DELETE CASCADE,
+
+    fiscal_year INTEGER NOT NULL,
+
+    total_amount NUMERIC(14,2) NOT NULL
+        CHECK (total_amount >= 0),
+
+    created_by UUID
+        REFERENCES public.profiles(id) ON DELETE SET NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE (department_id, fiscal_year)
+);
+```
+
+---
+
+# 16. Table 4 — expense_policies
+
+Purpose:
+
+Defines reimbursement and expense rules.
+
+Columns:
+
+```text
+id
+category
+max_amount_per_transaction
+max_amount_per_day
+receipt_required
+description
+is_active
+created_by
+created_at
+```
+
+SQL:
+
+```sql
+CREATE TABLE public.expense_policies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    category TEXT NOT NULL,
+
+    max_amount_per_transaction NUMERIC(14,2)
+        CHECK (max_amount_per_transaction >= 0),
+
+    max_amount_per_day NUMERIC(14,2)
+        CHECK (max_amount_per_day >= 0),
+
+    receipt_required BOOLEAN NOT NULL DEFAULT TRUE,
+
+    description TEXT,
+
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_by UUID
+        REFERENCES public.profiles(id) ON DELETE SET NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+# 17. Table 5 — approval_rules
+
+Purpose:
+
+Defines approval hierarchy.
+
+Columns:
+
+```text
+id
+min_amount
+max_amount
+required_role
+approval_order
+is_active
+created_by
+created_at
+```
+
+SQL:
+
+```sql
+CREATE TABLE public.approval_rules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    min_amount NUMERIC(14,2) NOT NULL
+        CHECK (min_amount >= 0),
+
+    max_amount NUMERIC(14,2)
+        CHECK (
+            max_amount IS NULL
+            OR max_amount >= min_amount
+        ),
+
+    required_role TEXT NOT NULL
+        CHECK (
+            required_role IN ('manager', 'finance', 'admin')
+        ),
+
+    approval_order INTEGER NOT NULL
+        CHECK (approval_order > 0),
+
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_by UUID
+        REFERENCES public.profiles(id) ON DELETE SET NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+# 18. Table 6 — expenses
+
+This is the central/main table.
+
+Columns:
+
+```text
+id
+employee_id
+department_id
+amount
+currency
+category
+merchant
+expense_date
+description
+invoice_number
+receipt_path
+status
+policy_status
+risk_level
+ai_recommendation
+ai_summary
+ai_analysis
+submitted_at
+created_at
+updated_at
+```
+
+SQL:
+
+```sql
+CREATE TABLE public.expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    employee_id UUID NOT NULL
+        REFERENCES public.profiles(id) ON DELETE RESTRICT,
+
+    department_id UUID NOT NULL
+        REFERENCES public.departments(id) ON DELETE RESTRICT,
+
+    amount NUMERIC(14,2) NOT NULL
+        CHECK (amount > 0),
+
+    currency TEXT NOT NULL DEFAULT 'INR',
+
+    category TEXT NOT NULL,
+
+    merchant TEXT,
+
+    expense_date DATE NOT NULL,
+
+    description TEXT,
+
+    invoice_number TEXT,
+
+    receipt_path TEXT,
+
+    status TEXT NOT NULL DEFAULT 'submitted'
+        CHECK (
+            status IN (
+                'draft',
+                'submitted',
+                'in_review',
+                'approved',
+                'rejected',
+                'reimbursed'
+            )
+        ),
+
+    policy_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (
+            policy_status IN (
+                'pending',
+                'compliant',
+                'violation',
+                'not_applicable'
+            )
+        ),
+
+    risk_level TEXT
+        CHECK (
+            risk_level IS NULL
+            OR risk_level IN ('low', 'medium', 'high')
+        ),
+
+    ai_recommendation TEXT,
+
+    ai_summary TEXT,
+
+    ai_analysis JSONB,
+
+    submitted_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+The `ai_analysis` JSONB field can hold structured LLM results such as:
+
+```json
+{
+  "category": "Accommodation",
+  "confidence": 0.96,
+  "policy_compliant": false,
+  "duplicate_detected": false,
+  "anomaly": true,
+  "budget_impact": "high",
+  "recommendation": "finance_review",
+  "reasons": [
+    "Hotel expense exceeds policy limit",
+    "Department budget utilization is high"
+  ]
+}
+```
+
+No separate AI database tables are necessary for the MVP.
+
+---
+
+# 19. Table 7 — expense_approvals
+
+Purpose:
+
+Stores actual human approval actions.
+
+SQL:
+
+```sql
+CREATE TABLE public.expense_approvals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    expense_id UUID NOT NULL
+        REFERENCES public.expenses(id) ON DELETE CASCADE,
+
+    approver_id UUID NOT NULL
+        REFERENCES public.profiles(id) ON DELETE RESTRICT,
+
+    approval_order INTEGER NOT NULL
+        CHECK (approval_order > 0),
+
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (
+            status IN (
+                'pending',
+                'approved',
+                'rejected',
+                'skipped'
+            )
+        ),
+
+    comment TEXT,
+
+    acted_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE (expense_id, approval_order)
+);
+```
+
+Example:
+
+```text
+Expense #1024
+
+Manager:
+APPROVED
+
+Finance:
+PENDING
+```
+
+---
+
+# 20. Table 8 — audit_logs
+
+Purpose:
+
+Stores important system events.
+
+SQL:
+
+```sql
+CREATE TABLE public.audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    user_id UUID
+        REFERENCES public.profiles(id) ON DELETE SET NULL,
+
+    expense_id UUID
+        REFERENCES public.expenses(id) ON DELETE CASCADE,
+
+    action TEXT NOT NULL,
+
+    old_value JSONB,
+
+    new_value JSONB,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Example actions:
+
+```text
+expense_submitted
+expense_updated
+policy_checked
+expense_approved
+expense_rejected
+expense_escalated
+budget_updated
+ai_analysis_completed
+```
+
+---
+
+# 21. Database Creation Order
+
+Create tables in this exact order:
+
+```text
+1. departments
+2. profiles
+3. budgets
+4. expense_policies
+5. approval_rules
+6. expenses
+7. expense_approvals
+8. audit_logs
+```
+
+Reason:
+
+There are foreign-key dependencies between these tables.
+
+---
+
+# 22. Indexes
+
+After creating the tables:
+
+```sql
+CREATE INDEX idx_profiles_department
+ON public.profiles(department_id);
+
+CREATE INDEX idx_expenses_employee
+ON public.expenses(employee_id);
+
+CREATE INDEX idx_expenses_department
+ON public.expenses(department_id);
+
+CREATE INDEX idx_expenses_status
+ON public.expenses(status);
+
+CREATE INDEX idx_expenses_date
+ON public.expenses(expense_date);
+
+CREATE INDEX idx_expenses_category
+ON public.expenses(category);
+
+CREATE INDEX idx_expense_approvals_expense
+ON public.expense_approvals(expense_id);
+
+CREATE INDEX idx_expense_approvals_approver
+ON public.expense_approvals(approver_id);
+
+CREATE INDEX idx_audit_logs_expense
+ON public.audit_logs(expense_id);
+```
+
+---
+
+# 23. RLS
+
+Enable RLS on all application tables:
+
+```sql
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expense_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.approval_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expense_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+```
+
+Proper role-based policies should later be added for:
+
+```text
+employee
+manager
+finance
+admin
+```
+
+---
+
+# 24. Supabase Storage
+
+Receipt files should use Supabase Storage.
+
+Bucket:
+
+```text
+expense-receipts
+```
+
+Bucket should be:
+
+```text
+Private
+```
+
+It can be created with:
+
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('expense-receipts', 'expense-receipts', false);
+```
+
+Verify:
+
+```sql
+SELECT id, name, public
+FROM storage.buckets
+WHERE id = 'expense-receipts';
+```
+
+Storage path example:
+
+```text
+expense-receipts/
+    <employee_id>/
+        <expense_id>/
+            receipt.pdf
+```
+
+The PostgreSQL table stores only:
+
+```text
+expenses.receipt_path
+```
+
+Do not store the actual PDF/image inside PostgreSQL.
+
+---
+
+# 25. Important Security Rule
+
+The Supabase `service_role` key must NEVER be exposed to the React/TSX frontend.
+
+Correct:
+
+```text
+React
+   ↓
+FastAPI
+   ↓
+Supabase
+```
+
+The FastAPI backend can hold privileged Supabase credentials.
+
+Incorrect:
+
+```text
+React
+   ↓
+service_role key
+```
+
+---
+
+# 26. Seed Department Data
+
+Example:
+
+```sql
+INSERT INTO public.departments (name, description)
+VALUES
+('Engineering', 'Software and technology'),
+('Marketing', 'Marketing and communications'),
+('Sales', 'Sales and business development'),
+('HR', 'Human resources'),
+('Finance', 'Finance and accounting'),
+('Operations', 'Business operations');
+```
+
+---
+
+# 27. Seed Policy Data
+
+Example:
+
+```sql
+INSERT INTO public.expense_policies (
+    category,
+    max_amount_per_transaction,
+    max_amount_per_day,
+    receipt_required,
+    description
+)
+VALUES
+(
+    'Travel',
+    50000,
+    NULL,
+    TRUE,
+    'Business travel expenses'
+),
+(
+    'Accommodation',
+    8000,
+    NULL,
+    TRUE,
+    'Hotel accommodation limit per transaction'
+),
+(
+    'Food',
+    1500,
+    1500,
+    TRUE,
+    'Meals and food expenses'
+),
+(
+    'Office Supplies',
+    10000,
+    NULL,
+    TRUE,
+    'Office equipment and supplies'
+);
+```
+
+---
+
+# 28. Seed Approval Rules
+
+Example:
+
+```sql
+INSERT INTO public.approval_rules (
+    min_amount,
+    max_amount,
+    required_role,
+    approval_order
+)
+VALUES
+(0, 5000, 'manager', 1),
+
+(5000.01, 25000, 'manager', 1),
+(5000.01, 25000, 'finance', 2),
+
+(25000.01, NULL, 'manager', 1),
+(25000.01, NULL, 'finance', 2),
+(25000.01, NULL, 'admin', 3);
+```
+
+---
+
+# 29. What Should NOT Be Added Yet
+
+For the simplified hackathon MVP, do NOT overengineer the database with tables like:
+
+```text
+ai_models
+llm_prompts
+forecast_models
+expense_embeddings
+anomaly_scores
+budget_predictions
+vendors
+```
+
+The MVP can handle AI output using:
+
+```text
+expenses.ai_analysis JSONB
+```
+
+Budget calculations can be generated from:
+
+```text
+budgets
++
+expenses
+```
+
+Forecasting can be calculated by FastAPI/Python.
+
+---
+
+# 30. Recommended Simplified MVP
+
+The actual MVP should focus on:
+
+```text
+Authentication
+       ↓
+Role-based Dashboard
+       ↓
+Expense Submission
+       ↓
+Receipt Upload
+       ↓
+LLM Extraction
+       ↓
+Expense Categorization
+       ↓
+Policy Check
+       ↓
+Budget Check
+       ↓
+AI Recommendation
+       ↓
+Human Approval
+       ↓
+Audit Log
+       ↓
+Budget Dashboard
+```
+
+---
+
+# 31. Recommended Hackathon "Wow" Features
+
+If time permits, add these after the basic workflow works:
+
+### 1. Budget Impact Simulator
+
+```text
+"What happens if I approve this?"
+```
+
+### 2. Finance Copilot
+
+```text
+"Which department is at highest budget risk?"
+```
+
+### 3. Explainable AI
+
+```text
+"Why was this expense flagged?"
+```
+
+### 4. Predictive Budget Monitoring
+
+```text
+"Engineering is projected to exceed its budget."
+```
+
+### 5. Intelligent Approval Queue
+
+```text
+High impact
+Medium impact
+Routine
+```
+
+---
+
+# 32. Ideal Product Architecture
+
+Final conceptual architecture:
+
+```text
+                           ┌────────────────────┐
+                           │    React + TSX     │
+                           │                    │
+                           │ Employee Dashboard │
+                           │ Manager Dashboard  │
+                           │ Finance Dashboard  │
+                           │ Admin Dashboard    │
+                           └─────────┬──────────┘
+                                     │
+                                     ▼
+                           ┌────────────────────┐
+                           │       FastAPI      │
+                           │                    │
+                           │ Expense APIs       │
+                           │ Approval APIs      │
+                           │ Budget APIs        │
+                           │ AI Orchestration   │
+                           │ Finance Copilot    │
+                           └──────┬─────┬───────┘
+                                  │     │
+                     ┌────────────┘     └─────────────┐
+                     ▼                                ▼
+             ┌──────────────┐                 ┌──────────────┐
+             │   Supabase   │                 │   LLM APIs   │
+             │              │                 │              │
+             │ PostgreSQL   │                 │ Extraction   │
+             │ Auth         │                 │ Categorize   │
+             │ Storage      │                 │ Reasoning    │
+             └──────────────┘                 │ Copilot      │
+                                              └──────────────┘
+```
+
+---
+
+# 33. Final Product Workflow
+
+```text
+ADMIN
+ │
+ ├── Create departments
+ ├── Define budgets
+ ├── Define policies
+ └── Define approval rules
+ │
+ ▼
+EMPLOYEE
+ │
+ ├── Upload receipt
+ ├── Manual entry
+ └── Verify AI-extracted data
+ │
+ ▼
+AI / BACKEND
+ │
+ ├── Extract expense information
+ ├── Categorize expense
+ ├── Check policy
+ ├── Detect duplicate
+ ├── Analyze anomaly
+ ├── Calculate budget impact
+ ├── Generate forecast
+ └── Generate recommendation
+ │
+ ▼
+MANAGER / FINANCE / ADMIN
+ │
+ ├── Review AI analysis
+ ├── View receipt
+ ├── View budget impact
+ └── Approve / Reject / Escalate
+ │
+ ▼
+SUPABASE
+ │
+ ├── Update expense
+ ├── Update approval
+ └── Create audit log
+ │
+ ▼
+DASHBOARD
+ │
+ ├── Budget utilization
+ ├── Pending approvals
+ ├── Forecast
+ ├── Risks
+ └── AI insights
+```
+
+# 34. Core Principle for Development
+
+Keep the architecture simple:
+
+```text
+LLM = Understanding + Explanation + Recommendation
+
+FastAPI/Python = Business logic + calculations + orchestration
+
+Supabase = Data + authentication + receipt storage
+
+React/TSX = User interface
+```
+
+Most importantly:
+
+> **Do not use the LLM for calculations that normal code can perform accurately.**
+
+For example:
+
+```text
+Budget remaining
+= Budget - Approved Expenses
+```
+
+should be calculated by Python/SQL.
+
+The LLM can then explain:
+
+> "The department has ₹7.6 lakh remaining and is projected to exceed its annual allocation based on current spending trends."
+
+---
+
+# 35. Current Project Decision Summary
+
+At this point, the agreed direction is:
+
+```text
+Project:
+Intelligent Expense Approval & Budget Monitoring System
+
+Frontend:
+React + TSX
+
+Backend:
+FastAPI
+
+Database:
+Supabase PostgreSQL
+
+Authentication:
+Supabase Auth
+
+File Storage:
+Supabase Storage
+
+AI:
+LLM APIs
+
+Human approval:
+YES
+
+LLM final approval:
+NO
+
+Admin:
+Defines budgets + policies + approval rules
+
+Core database:
+8 tables
+
+Main innovation:
+AI-assisted, budget-aware, explainable expense approval
+
+Main USP:
+Predict financial impact before approval
+```
+
+The next development stage should be to turn this schema into the actual **FastAPI API design** and define the endpoints, request/response JSON, authentication flow, LLM integration flow, and frontend page structure.
+
+
+1. Connection string
+Copy the connection details for your database.
+Details:
+If your database password contains special characters, percent-encode them in the connection string.
+Connection parameters
+host:db.syorhfpfkrorshiskbmn.supabase.co
+port:5432
+database:postgres
+user:postgres
+Code:
+File: Code
+```
+postgresql://postgres:[YOUR-PASSWORD]@db.syorhfpfkrorshiskbmn.supabase.co:5432/postgres
+```
+
+2. Install Agent Skills (optional)
+Agent Skills give AI coding tools ready-made instructions, scripts, and resources for working with Supabase more accurately and efficiently.
+Code:
+File: Code
+```
+npx skills add supabase/agent-skills
+```
+
+
+
+
+VCS R2 Problem statement - Intelligent Expense approval and budget monitoring system...
+organization often processes employee expenses through spreadsheets, emails, and manual approvals. this makes it difficult to monitor department budgets, identify high value expenses and track pending approvals...
+
+we need to build an expense approval and budget monitoring system that manages expense submissions, approvals, and department budgets...
+
+
+discuss about the innovation, features and usps of this problem statement. talk to me about ideas how can we solve this problem.
