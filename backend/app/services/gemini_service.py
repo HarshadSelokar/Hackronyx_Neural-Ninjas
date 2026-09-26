@@ -27,9 +27,9 @@ def generate_content_with_fallback(contents, preferred_model: str = None):
 
     model_cascade = [
         preferred_model or settings.GEMINI_MODEL,
+        "gemini-2.5-flash",
         "gemini-3.5-flash",
-        "gemini-flash-latest",
-        "gemini-2.5-flash-lite"
+        "gemini-flash-latest"
     ]
 
     for model_name in model_cascade:

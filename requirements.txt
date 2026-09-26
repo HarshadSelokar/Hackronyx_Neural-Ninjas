@@ -1,0 +1,18 @@
+# Core Web Framework & Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.0
+python-multipart>=0.0.20
+
+# Database & Environment
+psycopg2-binary>=2.9.10
+python-dotenv>=1.0.0
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.1
+
+# AI & LLM (Official Google GenAI SDK)
+google-genai>=1.72.0
+httpx>=0.28.0
+requests>=2.31.0
